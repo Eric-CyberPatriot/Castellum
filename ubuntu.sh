@@ -94,12 +94,10 @@ sed -i 's/PASS_MAX_DAYS\t99999/PASS_MAX_DAYS\t90/' /etc/login.defs
 sed -i 's/PASS_MIN_DAYS\t0/PASS_MIN_DAYS\t10/' /etc/login.defs
 sed -i 's/PASS_WARN_AGE\t7/PASS_WARN_AGE\t7/' /etc/login.defs
 sed -i '1s/^/password requisite pam_pwquality.so retry=3 minlen=14 dcredit=-1 ucredit=-1 ocredit=-1 lcredit=-1\n/' /etc/pam.d/common-password
+
 # ... (similarly for other settings)
 
 sed -i 's/pam_unix.so.*/pam_unix.so obscure ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1/' /etc/pam.d/common-password
-
-
-
 
 # 11/12/13. Check /etc/passwd, /etc/group, disable root (Manual checks recommended)
 echo "Manually review /etc/passwd and /etc/group for inconsistencies and security issues."
@@ -190,8 +188,7 @@ add_or_update_setting "net.ipv6.conf.all.disable_ipv6" "1"
 add_or_update_setting "net.ipv6.conf.default.disable_ipv6" "1"
 add_or_update_setting "net.ipv6.conf.lo.disable_ipv6" "1"
 
-
 # Apply sysctl changes
 sysctl -p
 
-echo "System hardening script completed.  Manual review and additional steps may be necessary."
+echo "System hardening script completed. Remember to check the users to see if there are any unauthorized users or administrators."
