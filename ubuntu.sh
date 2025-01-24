@@ -88,6 +88,7 @@ elif [ -f /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf ]; then  # Ubuntu spe
 fi
 
 # 9. Edit /etc/login.defs
+sudo apt install libpam-cracklib
 sed -i 's/^\(FAILLOG_ENAB\).*/\1 YES/' /etc/login.defs
 sed -i 's/^\(LOG_UNKFAIL_ENAB\).*/\1 YES/' /etc/login.defs
 sed -i 's/PASS_MAX_DAYS\t99999/PASS_MAX_DAYS\t90/' /etc/login.defs
