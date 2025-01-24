@@ -1,2 +1,11 @@
 sudo pdbedit -L -v command can be used to check which accounts have been disabled using the smbpasswd utility.
 A disabled account will usually have [D ] or [DISABLED ] or a flag that clearly indicates "disabled".
+
+
+find netcat backdoor: 
+ps aux | grep ncat 
+ps aux | grep netcat
+
+after finding the port, use the port number and write this command:
+ps aux | grep PORTNUMBER
+usually starts with /bin
