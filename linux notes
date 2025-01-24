@@ -9,3 +9,6 @@ ps aux | grep netcat
 after finding the port, use the port number and write this command:
 ps aux | grep PORTNUMBER
 usually starts with /bin
+
+use crontab -l command to find all cronjobs and use crontab -e to edit/delete cronjobs 
+kill -9 PROCESSID command to end it
