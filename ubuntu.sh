@@ -91,7 +91,7 @@ fi
 sed -i 's/^\(FAILLOG_ENAB\).*/\1 YES/' /etc/login.defs
 sed -i 's/^\(LOG_UNKFAIL_ENAB\).*/\1 YES/' /etc/login.defs
 sed -i 's/PASS_MAX_DAYS\t99999/PASS_MAX_DAYS\t90/' /etc/login.defs
-sed -i 's/PASS_MIN_DAYS\t0/PASS_MIN_DAYS\t5/' /etc/login.defs
+sed -i 's/PASS_MIN_DAYS\t0/PASS_MIN_DAYS\t2/' /etc/login.defs
 sed -i 's/PASS_WARN_AGE\t7/PASS_WARN_AGE\t7/' /etc/login.defs
 sed -i '1s/^/password requisite pam_pwquality.so retry=3 minlen=14 dcredit=-1 ucredit=-1 ocredit=-1 lcredit=-1\n/' /etc/pam.d/common-password
 
