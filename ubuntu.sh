@@ -102,6 +102,7 @@ sed -i 's/pam_unix.so.*/pam_unix.so obscure ucredit=-1 lcredit=-1 dcredit=-1 ocr
 # 11/12/13. Check /etc/passwd, /etc/group, disable root (Manual checks recommended)
 echo "Manually review /etc/passwd and /etc/group for inconsistencies and security issues."
 echo "Ensure root is disabled (passwd -l root)."
+usermod -L root
 passwd -l root  # Lock root account
 
 # 14. Secure SSH
@@ -145,6 +146,8 @@ chmod 644 /etc/passwd
 chmod 640 /etc/shadow
 chmod 644 /etc/group
 chmod 640 /etc/gshadow
+chmod 640 /etc/sudoers
+chmod 640 /etc/sudoers.d/
 echo "tmpfs     /run/shm     tmpfs     defaults,noexec,nosuid     0     0" >> /etc/fstab
 
 # ... (Continue similarly for the rest of the checklist) ...
