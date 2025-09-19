@@ -5,5 +5,5 @@ The ubuntu.sh file is a script that can be ran to harden ubuntu systems. Please 
 
 make sure that you use sudo when running the script.
 
-run "sudo sh ubuntu.sh" to start the script.
+run "sudo bash ubuntu.sh" to start the script.
  
