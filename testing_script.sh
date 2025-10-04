@@ -634,7 +634,6 @@ echo " (i) Alternatively, use bind mounts or tmpfs for /tmp."
 echo " (>) Setting restrictive file permissions for critical files..."
 chmod 600 /boot/grub/grub.cfg # Check path for your system
 chmod 644 /etc/passwd
-chmod 000 /etc/shadow # Only root reads via helpers, careful if tools need direct read
 chown root:root /etc/shadow
 chmod 640 /etc/shadow # More common approach allowing group 'shadow' to read
 chgrp shadow /etc/shadow || true # Group shadow may not exist initially, create it if needed.
