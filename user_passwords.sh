@@ -11,7 +11,7 @@
 
 # The strong password to be set for all specified users.
 # Hardening Tip: For full CyberPatriot points, ensure your password is 14+ characters long!
-NEW_PASSWORD="Cyb3rPatri0t!"
+NEW_PASSWORD="Cyb3rPatri0tsPass!"
 
 # List of users whose passwords you want to change.
 # Add or remove usernames as required by the competition image.
