@@ -10,9 +10,8 @@
 # --- Configuration Section ---
 
 # The strong password to be set for all specified users.
-# NOTE: In a competition, consider a password of 14+ characters 
-# for maximum points, as 13 is just below a common target.
-NEW_PASSWORD="Cyb3rPatri0tsPass!"
+# Hardening Tip: For full CyberPatriot points, ensure your password is 14+ characters long!
+NEW_PASSWORD="Cyb3rPatri0t!"
 
 # List of users whose passwords you want to change.
 # Add or remove usernames as required by the competition image.
@@ -22,6 +21,7 @@ USER_LIST=(
     "unsecureuser" 
     "student" 
     "backup_admin"
+    "root" # Always secure the root account
 )
 
 # --- Script Execution ---
@@ -38,6 +38,7 @@ echo "The new password for all specified users will be: ${NEW_PASSWORD}"
 echo "------------------------------------------------"
 
 # Create a temporary file to hold the username:password pairs
+# The mktemp command creates a secure, temporary filename
 PASSWORD_FILE=$(mktemp)
 
 # Loop through the list of users and check if they exist
@@ -53,10 +54,10 @@ done
 
 echo "------------------------------------------------"
 
-# Use 'chpasswd' to non-interactively set the passwords from the file
-# -c: Clears all password flags, ensuring the user is not prompted to change the password on first login
+# Use 'chpasswd' to non-interactively set the passwords from the file.
+# NOTE: The problematic '-c' flag was removed for compatibility.
 echo "Applying passwords using chpasswd..."
-chpasswd -c < "$PASSWORD_FILE"
+chpasswd < "$PASSWORD_FILE"
 
 # Check the exit status of the chpasswd command
 if [ $? -eq 0 ]; then
@@ -65,7 +66,7 @@ else
     echo "ERROR: An error occurred while running chpasswd. Please check the logs."
 fi
 
-# Clean up the temporary file containing the plaintext passwords
+# Clean up the temporary file containing the plaintext passwords (Crucial Security Step)
 rm -f "$PASSWORD_FILE"
 
 echo "--- Script Complete ---"
