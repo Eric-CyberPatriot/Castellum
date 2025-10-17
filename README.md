@@ -1,9 +1,11 @@
 # cyberpatriot-guide
-A collection of cyberpatriot guides and scripts.
+A collection of CyberPatriot guides and scripts.
 
-The ubuntu.sh file is a script that can be ran to harden ubuntu systems. Please make the file executable first in properties or by running chmod +x ubuntu.sh 
+The ubuntu.sh file is a script that can be ran to harden Ubuntu systems. Please make the file executable first in properties or by running chmod +x ubuntu.sh 
 
-make sure that you use sudo when running the script.
+Make sure that you use sudo when running the script.
 
-run "sudo bash ubuntu.sh" to start the script.
+When using the users script, make sure to update the list of users with the actual names of the users in the system. Then run the script by typing "sudo bash user_passwords.sh"
+
+Run "sudo bash ubuntu.sh" to start the script.
  
