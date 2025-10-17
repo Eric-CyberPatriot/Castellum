@@ -12,7 +12,7 @@
 # The strong password to be set for all specified users.
 # NOTE: In a competition, consider a password of 14+ characters 
 # for maximum points, as 13 is just below a common target.
-NEW_PASSWORD="Cyb3rPatri0t!"
+NEW_PASSWORD="Cyb3rPatri0tsPass!"
 
 # List of users whose passwords you want to change.
 # Add or remove usernames as required by the competition image.
