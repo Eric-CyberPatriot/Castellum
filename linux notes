@@ -12,3 +12,7 @@ usually starts with /bin
 
 use crontab -l command to find all cronjobs and use crontab -e to edit/delete cronjobs 
 kill -9 PROCESSID command to end it
+
+use sudo ss -tulnp to check open network ports
+
+use systemctl list-units --type=service -- state=active to check running services and use sudo systemctl disable --now SERVICENAME to disable and stop the service.
