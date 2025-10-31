@@ -466,18 +466,6 @@ echo " (>) Configuring PAM for account lockout (pam_faillock)..."
 # This needs to be done carefully. Add before pam_unix.so in auth section
 # and before pam_permit.so in account section.
 # /etc/pam.d/common-auth
-COMMON_AUTH="/etc/pam.d/common-auth"
-cp "${COMMON_AUTH}" "${COMMON_AUTH}.bak"
-# Add faillock before pam_unix.so, ensuring no duplicates
-if ! grep -q "pam_faillock.so preauth" "${COMMON_AUTH}"; then
-  sed -i '/pam_unix.so/i auth        required      pam_faillock.so preauth silent audit deny=3 unlock_time=1800' "${COMMON_AUTH}"
-fi
-# Add faillock after pam_unix.so (or pam_permit.so if it's the last one)
-if ! grep -q "pam_faillock.so authfail" "${COMMON_AUTH}"; then
-  # Insert after pam_unix.so, or at the end if pam_unix.so is not found (less ideal)
-  sed -i '/pam_unix.so/a auth        [default=die] pam_faillock.so authfail silent audit deny=3 unlock_time=1800' "${COMMON_AUTH}" \
-    || echo "auth        [default=die] pam_faillock.so authfail silent audit deny=3 unlock_time=1800" >> "${COMMON_AUTH}"
-fi
 
 # /etc/pam.d/common-account
 COMMON_ACCOUNT="/etc/pam.d/common-account"
