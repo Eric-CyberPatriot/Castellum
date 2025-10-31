@@ -285,7 +285,7 @@ INSECURE_PACKAGES=(
   "nis" "ypbind"
   "xinetd"
   "tftpd" "tftp-hpa"
-  "openssh-server" # Only remove if SSH is absolutely not needed (rare for CP)
+  # "openssh-server" # Only remove if SSH is absolutely not needed (rare for CP)
                    # But often you need to secure it, not remove it.
   "john" "nmap" "hydra" "wireshark" # Hacking tools - often planted
 )
