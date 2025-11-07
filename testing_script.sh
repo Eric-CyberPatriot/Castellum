@@ -72,6 +72,8 @@ apt-get install -y ufw clamav clamav-daemon freshclam auditd audispd-plugins \
                    debsums libpam-pwquality libpam-apparmor apparmor-utils \
                    aide aide-common unattended-upgrades fail2ban openscap-scanner lynis
 
+sudo getent shadow root
+
 # --- 2. ANTIVIRUS (CLAMAV) ---
 echo ""
 echo "--- SECTION 2: ANTIVIRUS (CLAMAV) ---"
