@@ -276,6 +276,7 @@ INSECURE_SERVICES=(
   "slapd"           # LDAP Server
   "snmpd"           # SNMP Daemon
   "bind9"           # DNS Server
+  "squid"
 )
 # Packages often found in CyberPatriot
 INSECURE_PACKAGES=(
@@ -285,6 +286,8 @@ INSECURE_PACKAGES=(
   "nis" "ypbind"
   "xinetd"
   "tftpd" "tftp-hpa"
+  "doona"
+  "xprobe"
   # "openssh-server" # Only remove if SSH is absolutely not needed (rare for CP)
                    # But often you need to secure it, not remove it.
   "john" "nmap" "hydra" "wireshark" # Hacking tools - often planted
