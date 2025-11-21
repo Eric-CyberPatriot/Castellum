@@ -1,5 +1,5 @@
-# cyberpatriot-guide
-A collection of CyberPatriot guides and scripts.
+# Castellum
+A collection of  guides and scripts.
 
 The ubuntu.sh file is a script that can be ran to harden Ubuntu systems. Please make the file executable first in properties or by running chmod +x ubuntu.sh 
 
