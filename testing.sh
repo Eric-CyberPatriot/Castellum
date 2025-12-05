@@ -590,6 +590,72 @@ chmod 600 /etc/shadow
 chmod 600 /etc/gshadow
 chmod 600 /etc/ssh/sshd_config 2>/dev/null || true
 
+# --- SECURE WEB SERVER ROOT ---
+if [ -d "/var/www/html" ]; then
+    echo " (>) Securing /var/www/html permissions..."
+    # 1. Set ownership to root:root (or root:www-data)
+    # This prevents the web user from modifying files if compromised.
+    chown -R root:root /var/www/html
+    
+    # 2. Set directories to 755 (Read/Execute for everyone, Write for Owner only)
+    find /var/www/html -type d -exec chmod 755 {} \;
+    
+    # 3. Set files to 644 (Read/Write for Owner, Read for everyone)
+    find /var/www/html -type f -exec chmod 644 {} \;
+    
+    echo " (i) Web root permissions fixed."
+fi
+# --- SECURE ROOT HOME ---
+echo " (>) Securing /root directory..."
+chown root:root /root
+chmod 700 /root
+# --- SECURE SHELL CONFIGS ---
+echo " (>) Securing global shell configuration files..."
+SHELL_CONFIGS=("/etc/profile" "/etc/bash.bashrc" "/etc/environment" "/etc/profile.d")
+
+for config in "${SHELL_CONFIGS[@]}"; do
+  if [ -e "$config" ]; then
+    chown root:root "$config"
+    chmod 644 "$config"
+  fi
+done
+# --- SECURE SUDOERS DIRECTORY ---
+echo " (>) Securing /etc/sudoers.d..."
+# The directory itself needs to be 750 (root:root or root:sudo)
+chmod 750 /etc/sudoers.d
+# Files inside must be 440
+chmod 440 /etc/sudoers.d/* 2>/dev/null || true
+# --- SECURE APT SOURCES ---
+echo " (>) Securing apt sources..."
+chown root:root /etc/apt/sources.list
+chmod 644 /etc/apt/sources.list
+chown root:root /etc/apt/sources.list.d
+chmod 755 /etc/apt/sources.list.d
+# --- SECURE CRON DIRECTORIES ---
+echo " (>) Securing cron directories..."
+# Set ownership to root:root and permissions to 700 (or 755)
+# 700 is safer so only root can see what jobs are running.
+chmod 700 /etc/cron.d /etc/cron.daily /etc/cron.hourly /etc/cron.weekly /etc/cron.monthly
+chown -R root:root /etc/cron.d /etc/cron.daily /etc/cron.hourly /etc/cron.weekly /etc/cron.monthly
+chmod 600 /etc/crontab
+# --- SECURE LOG FILES ---
+echo " (>) Securing log files..."
+# wtmp logs login/logout history
+if [ -f /var/log/wtmp ]; then
+    chmod 660 /var/log/wtmp
+    chown root:utmp /var/log/wtmp
+fi
+# btmp logs failed login attempts
+if [ -f /var/log/btmp ]; then
+    chmod 660 /var/log/btmp
+    chown root:utmp /var/log/btmp
+fi
+# lastlog
+if [ -f /var/log/lastlog ]; then
+    chmod 660 /var/log/lastlog
+    chown root:utmp /var/log/lastlog
+fi
+
 # --- 16. MEDIA & HACKING FILES ---
 echo ""
 echo "--- SECTION 16: PROHIBITED FILES ---"
