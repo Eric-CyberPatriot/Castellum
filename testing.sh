@@ -251,6 +251,37 @@ if dpkg -s vsftpd &> /dev/null; then
     sed -i '/^allow_writeable_chroot/d' "$VSFTPD_CONF"
     echo "allow_writeable_chroot=YES" >> "$VSFTPD_CONF"
 
+    # --- SECTION: FIX FTP ROOT PERMISSIONS ---
+echo " (>) Securing FTP Root Directories..."
+
+# 1. Define common FTP root locations
+# (Ubuntu/Debian usually uses /srv/ftp, older systems use /var/ftp)
+FTP_ROOTS=("/srv/ftp" "/var/ftp")
+
+for dir in "${FTP_ROOTS[@]}"; do
+  if [ -d "$dir" ]; then
+    echo " (>) Found FTP directory: $dir"
+    
+    # 2. Change ownership to root:root
+    # The FTP root MUST NOT be owned by the user 'ftp' or the group 'ftp'.
+    chown root:root "$dir"
+    echo "     - Changed ownership to root:root"
+
+    # 3. Change permissions to 755 (Read/Execute for everyone, Write ONLY for root)
+    # This prevents the "500 OOPS: vsftpd: refusing to run with writable root inside chroot()" error
+    # and secures the directory from tampering.
+    chmod 755 "$dir"
+    echo "     - Changed permissions to 755"
+    
+    # Optional: If you need an upload folder, create a 'blind' directory inside
+    # mkdir -p "$dir/upload"
+    # chown ftp:ftp "$dir/upload"
+    # chmod 755 "$dir/upload"
+  fi
+done
+
+echo " (i) FTP Root directory permissions fixed."
+
     echo " (>) Restarting vsftpd..."
     systemctl restart vsftpd || echo " (!) Failed to restart vsftpd. Check configuration."
 else
