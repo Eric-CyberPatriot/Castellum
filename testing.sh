@@ -292,6 +292,22 @@ if [ -f "$LIGHTDM_CONF" ]; then
     echo "greeter-show-manual-login=true" >> "$LIGHTDM_CONF"
 fi
 
+# --- 12. LIGHTDM (LINUX MINT 21 FIX) ---
+echo ""
+echo "--- SECTION 12: LIGHTDM ---"
+
+# Create the configuration directory if it doesn't exist
+mkdir -p /etc/lightdm/lightdm.conf.d
+
+# Create a new config file with high priority (99) to override defaults
+# This works for both Ubuntu and Linux Mint 21
+echo "[Seat:*]" > /etc/lightdm/lightdm.conf.d/99-cyberpatriot-hardening.conf
+echo "allow-guest=false" >> /etc/lightdm/lightdm.conf.d/99-cyberpatriot-hardening.conf
+echo "greeter-hide-users=true" >> /etc/lightdm/lightdm.conf.d/99-cyberpatriot-hardening.conf
+echo "greeter-show-manual-login=true" >> /etc/lightdm/lightdm.conf.d/99-cyberpatriot-hardening.conf
+
+echo " (i) Guest account disabled via /etc/lightdm/lightdm.conf.d/99-cyberpatriot-hardening.conf"
+
 # --- 13. KERNEL PARAMETERS ---
 echo ""
 echo "--- SECTION 13: KERNEL PARAMETERS ---"
