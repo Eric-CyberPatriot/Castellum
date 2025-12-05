@@ -210,6 +210,17 @@ if systemctl is-active --quiet exim4; then
     systemctl disable exim4
     echo "     - Exim4 stopped and disabled."
 fi
+# --- MYSQL HARDENING ---
+if [ -d "/etc/mysql" ]; then
+    echo " (>) Securing MySQL..."
+    # Ensure MySQL only listens on localhost
+    find /etc/mysql -name "*.cnf" -exec sed -i 's/^bind-address.*/bind-address = 127.0.0.1/' {} \;
+    # Disable symbolic links
+    find /etc/mysql -name "*.cnf" -exec sed -i '/\[mysqld\]/a skip-symbolic-links' {} \;
+    # Restart
+    systemctl restart mysql 2>/dev/null || true
+fi
+
 # --- SECTION 8.1: SECURE VSFTPD (FTP WITH SSL) ---
 echo ""
 echo "--- SECTION 8.1: SECURING VSFTPD (FTP) ---"
@@ -318,6 +329,31 @@ echo " (i) FTP Root directory permissions fixed."
     systemctl restart vsftpd || echo " (!) Failed to restart vsftpd. Check configuration."
 else
     echo " (*) vsftpd is not installed. Skipping."
+fi
+
+# --- PHP SECURITY HARDENING ---
+if [ -d "/etc/php" ]; then
+    echo " (>) Hardening PHP configuration..."
+    # Find all php.ini files
+    PHP_INIS=$(find /etc/php -name "php.ini")
+    
+    for ini in $PHP_INIS; do
+        echo "     - Editing $ini"
+        # Disable remote file opening (prevents RFI attacks)
+        sed -i 's/^allow_url_fopen.*/allow_url_fopen = Off/' "$ini"
+        sed -i 's/^allow_url_include.*/allow_url_include = Off/' "$ini"
+        # Disable script execution time limit (prevents DoS)
+        sed -i 's/^max_execution_time.*/max_execution_time = 30/' "$ini"
+        # Hide PHP version (Information Disclosure)
+        sed -i 's/^expose_php.*/expose_php = Off/' "$ini"
+        # Disable dangerous functions
+        sed -i 's/^disable_functions.*/disable_functions = exec,passthru,shell_exec,system,proc_open,popen,curl_exec,curl_multi_exec,parse_ini_file,show_source/' "$ini"
+        # Enable logging
+        sed -i 's/^log_errors.*/log_errors = On/' "$ini"
+    done
+    
+    # Restart Apache if present
+    systemctl restart apache2 2>/dev/null || true
 fi
 
 # --- 9. SSH CONFIGURATION ---
@@ -476,6 +512,19 @@ cp /tmp/policies.json /usr/lib/firefox/distribution/policies.json
 cp /tmp/policies.json /etc/firefox/policies/policies.json
 echo " (i) Firefox policies applied (Popups blocked, Passwords disabled)."
 
+# --- CHECK FOR NON-ROOT UID 0 ---
+echo " (>) Checking for non-root users with UID 0..."
+# Get all users with UID 0
+UID0_USERS=$(awk -F: '($3 == "0") {print $1}' /etc/passwd)
+
+for user in $UID0_USERS; do
+    if [ "$user" != "root" ]; then
+        echo " (!!!) SECURITY ALERT: User $user has UID 0! Changing to UID 1000+..."
+        # Change UID to something safe (incrementing to avoid conflict)
+        usermod -u $(shuf -i 2000-5000 -n 1) "$user"
+        echo "     - $user UID changed. Verify user is still needed."
+    fi
+done
 # --- 12. LIGHTDM ---
 echo ""
 echo "--- SECTION 12: LIGHTDM ---"
@@ -670,6 +719,31 @@ if [ -f /var/log/lastlog ]; then
     chown root:utmp /var/log/lastlog
 fi
 
+# --- CLEAN ETC/HOSTS ---
+echo " (>) Checking /etc/hosts for malicious redirects..."
+# Backup first
+cp /etc/hosts /etc/hosts.bak
+# Remove lines redirecting security sites to localhost
+sed -i '/security.ubuntu.com/d' /etc/hosts
+sed -i '/archive.ubuntu.com/d' /etc/hosts
+sed -i '/packages.linuxmint.com/d' /etc/hosts
+echo " (i) Hosts file cleaned."
+
+# --- SUDOERS NOPASSWD SCRUB ---
+echo " (>) Checking sudoers for NOPASSWD entries..."
+# This finds lines containing NOPASSWD and comments them out
+if grep -q "NOPASSWD" /etc/sudoers; then
+    sed -i 's/\(.*NOPASSWD.*\)/# \1/' /etc/sudoers
+    echo "     - Commented out NOPASSWD in /etc/sudoers"
+fi
+
+# Check included files as well
+grep -r "NOPASSWD" /etc/sudoers.d/ | while read -r line; do
+    file=$(echo "$line" | cut -d: -f1)
+    sed -i 's/\(.*NOPASSWD.*\)/# \1/' "$file"
+    echo "     - Commented out NOPASSWD in $file"
+done
+
 # --- 16. MEDIA & HACKING FILES ---
 echo ""
 echo "--- SECTION 16: PROHIBITED FILES ---"
@@ -687,11 +761,34 @@ echo "--- FINAL CLEANUP ---"
 apt-get autoremove -y
 apt-get clean
 
+# --- ADVANCED PERSISTENCE CHECK ---
+echo " (>) Checking for suspicious startup scripts..."
+# Look for scripts in init.d that are not official services
+# This is a heuristic scan (might have false positives, just prints them)
+ls -la /etc/init.d/ | grep -v "root"
+ls -la /etc/rc.local 2>/dev/null
+
+echo " (>) Checking for 'hidden' cron jobs (files starting with .)..."
+find /etc/cron* -name ".*" -print
+find /var/spool/cron -name ".*" -print
+
 echo "Hardening complete. Please REBOOT the system."
 echo "Don't forget to manually check:"
 echo "1. Users in /etc/passwd and /etc/group (sudo group)"
 echo "2. Cron jobs (crontab -e)"
 echo "3. Firefox settings"
 echo "4. The README for specific services required!"
+
+echo ""
+echo "=================================================="
+echo "   CURRENT USER AUDIT (COMPARE WITH README!)"
+echo "=================================================="
+echo "ADMINS (sudo group):"
+grep -Po '^sudo:.*:\K.*$' /etc/group
+echo "--------------------------------------------------"
+echo "ALL USERS (UID >= 1000):"
+awk -F: '($3 >= 1000 && $3 < 60000) {print $1, $3}' /etc/passwd
+echo "=================================================="
+echo ""
 
 exit 0
