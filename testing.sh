@@ -178,6 +178,85 @@ echo " (>) Purging insecure packages..."
 apt-get purge -y "${INSECURE_PACKAGES[@]}" || true
 apt-get autoremove -y
 
+# --- SECTION 8.1: SECURE VSFTPD (FTP WITH SSL) ---
+echo ""
+echo "--- SECTION 8.1: SECURING VSFTPD (FTP) ---"
+
+# Only run if vsftpd is actually installed
+if dpkg -s vsftpd &> /dev/null; then
+    echo " (>) vsftpd detected. Securing configuration..."
+    VSFTPD_CONF="/etc/vsftpd.conf"
+    cp "$VSFTPD_CONF" "${VSFTPD_CONF}.bak"
+
+    # 1. Generate a self-signed certificate if one doesn't exist
+    # vsftpd needs this to enable SSL.
+    CERT_FILE="/etc/ssl/private/vsftpd.pem"
+    if [ ! -f "$CERT_FILE" ]; then
+        echo " (>) Generating self-signed SSL certificate for FTP..."
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout "$CERT_FILE" -out "$CERT_FILE" \
+            -subj "/C=US/ST=CyberPatriot/L=Security/O=IT/CN=ftp.secure" 2>/dev/null
+    fi
+
+    # 2. Define the settings we want to ENFORCE
+    # We use a loop to remove existing instances of these keys, then append the correct ones.
+    # This guarantees the settings are active and not duplicated.
+    
+    # Basic Security
+    sed -i '/^anonymous_enable/d' "$VSFTPD_CONF"
+    echo "anonymous_enable=NO" >> "$VSFTPD_CONF"
+    
+    sed -i '/^local_enable/d' "$VSFTPD_CONF"
+    echo "local_enable=YES" >> "$VSFTPD_CONF"
+    
+    sed -i '/^write_enable/d' "$VSFTPD_CONF"
+    echo "write_enable=YES" >> "$VSFTPD_CONF"
+
+    # SSL/TLS Enforcement
+    sed -i '/^ssl_enable/d' "$VSFTPD_CONF"
+    echo "ssl_enable=YES" >> "$VSFTPD_CONF"
+
+    sed -i '/^allow_anon_ssl/d' "$VSFTPD_CONF"
+    echo "allow_anon_ssl=NO" >> "$VSFTPD_CONF"
+
+    sed -i '/^force_local_data_ssl/d' "$VSFTPD_CONF"
+    echo "force_local_data_ssl=YES" >> "$VSFTPD_CONF"
+
+    sed -i '/^force_local_logins_ssl/d' "$VSFTPD_CONF"
+    echo "force_local_logins_ssl=YES" >> "$VSFTPD_CONF"
+
+    # Encryption Protocols (Disable weak SSL, Enable TLS)
+    sed -i '/^ssl_tlsv1/d' "$VSFTPD_CONF"
+    echo "ssl_tlsv1=YES" >> "$VSFTPD_CONF"
+    
+    sed -i '/^ssl_sslv2/d' "$VSFTPD_CONF"
+    echo "ssl_sslv2=NO" >> "$VSFTPD_CONF"
+    
+    sed -i '/^ssl_sslv3/d' "$VSFTPD_CONF"
+    echo "ssl_sslv3=NO" >> "$VSFTPD_CONF"
+
+    # Point to the certificate we generated/verified
+    sed -i '/^rsa_cert_file/d' "$VSFTPD_CONF"
+    echo "rsa_cert_file=$CERT_FILE" >> "$VSFTPD_CONF"
+    
+    sed -i '/^rsa_private_key_file/d' "$VSFTPD_CONF"
+    echo "rsa_private_key_file=$CERT_FILE" >> "$VSFTPD_CONF"
+
+    # 3. Restrict Users to Home Directory (Jail)
+    # This prevents users from browsing /etc/ or other system folders
+    sed -i '/^chroot_local_user/d' "$VSFTPD_CONF"
+    echo "chroot_local_user=YES" >> "$VSFTPD_CONF"
+    
+    # Fix for writable root inside chroot (prevents login errors)
+    sed -i '/^allow_writeable_chroot/d' "$VSFTPD_CONF"
+    echo "allow_writeable_chroot=YES" >> "$VSFTPD_CONF"
+
+    echo " (>) Restarting vsftpd..."
+    systemctl restart vsftpd || echo " (!) Failed to restart vsftpd. Check configuration."
+else
+    echo " (*) vsftpd is not installed. Skipping."
+fi
+
 # --- 9. SSH CONFIGURATION ---
 echo ""
 echo "--- SECTION 9: SECURE SSH CONFIGURATION ---"
