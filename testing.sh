@@ -196,6 +196,20 @@ MINT_BAD_PKGS=(
 apt-get purge -y "${MINT_BAD_PKGS[@]}" || true
 apt-get autoremove -y
 
+# --- DISABLE SMTP (EMAIL) ---
+echo " (>) Disabling SMTP services..."
+# Disable Postfix (Standard Ubuntu Mail Server)
+if systemctl is-active --quiet postfix; then
+    systemctl stop postfix
+    systemctl disable postfix
+    echo "     - Postfix stopped and disabled."
+fi
+# Disable Exim4 (Alternative Mail Server)
+if systemctl is-active --quiet exim4; then
+    systemctl stop exim4
+    systemctl disable exim4
+    echo "     - Exim4 stopped and disabled."
+fi
 # --- SECTION 8.1: SECURE VSFTPD (FTP WITH SSL) ---
 echo ""
 echo "--- SECTION 8.1: SECURING VSFTPD (FTP) ---"
