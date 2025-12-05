@@ -178,6 +178,24 @@ echo " (>) Purging insecure packages..."
 apt-get purge -y "${INSECURE_PACKAGES[@]}" || true
 apt-get autoremove -y
 
+# --- MINT SPECIFIC REMOVALS ---
+echo " (>) Removing Mint-specific prohibited software..."
+MINT_BAD_PKGS=(
+    "transmission-gtk"       # Torrent client (Always remove)
+    "transmission-common"
+    "hexchat"                # IRC Client (Usually remove)
+    "pidgin"                 # Chat client (Usually remove)
+    # "thunderbird"            # Email client (Remove if not the mail server)
+    "vino"                   # Remote desktop sharing (Dangerous)
+    "remmina"                # Remote desktop client (Remove if not needed)
+    "warpinator"             # Mint's file sharing tool (Often scored)
+    "aMule"
+    "Zangband"
+)
+
+apt-get purge -y "${MINT_BAD_PKGS[@]}" || true
+apt-get autoremove -y
+
 # --- SECTION 8.1: SECURE VSFTPD (FTP WITH SSL) ---
 echo ""
 echo "--- SECTION 8.1: SECURING VSFTPD (FTP) ---"
@@ -392,6 +410,58 @@ else
     fi
 fi
 
+# --- FIX NOPASSWDLOGIN GROUP ---
+echo " (>) Checking for users in 'nopasswdlogin' group..."
+if grep -q "nopasswdlogin" /etc/group; then
+    # Find users in the group
+    BAD_USERS=$(grep "nopasswdlogin" /etc/group | cut -d: -f4)
+    if [ -n "$BAD_USERS" ]; then
+        echo " (!) FOUND USERS IN nopasswdlogin: $BAD_USERS"
+        # Split by comma and loop
+        IFS=',' read -ra ADDR <<< "$BAD_USERS"
+        for user in "${ADDR[@]}"; do
+            echo "     - Removing $user from nopasswdlogin..."
+            gpasswd -d "$user" nopasswdlogin
+        done
+    else
+        echo " (*) No users found in nopasswdlogin group."
+    fi
+fi
+
+# --- SECTION 11.1: FIREFOX SECURITY ---
+echo " (>) Applying Firefox Security Policies..."
+mkdir -p /usr/lib/firefox/distribution
+mkdir -p /etc/firefox/policies
+
+# Define the policy content
+cat > /tmp/policies.json <<EOF
+{
+  "policies": {
+    "DisableAppUpdate": false,
+    "DisableTelemetry": true,
+    "DisableFirefoxStudies": true,
+    "DisablePocket": true,
+    "DisablePasswordReveal": true,
+    "OfferToSaveLogins": false,
+    "PasswordManagerEnabled": false,
+    "BlockAboutConfig": true,
+    "PopupBlocking": {
+      "Default": true,
+      "Locked": true
+    },
+    "Phishing": {
+      "Enabled": true,
+      "Locked": true
+    }
+  }
+}
+EOF
+
+# Copy to both possible locations to be safe
+cp /tmp/policies.json /usr/lib/firefox/distribution/policies.json
+cp /tmp/policies.json /etc/firefox/policies/policies.json
+echo " (i) Firefox policies applied (Popups blocked, Passwords disabled)."
+
 # --- 12. LIGHTDM ---
 echo ""
 echo "--- SECTION 12: LIGHTDM ---"
@@ -417,6 +487,61 @@ echo "greeter-hide-users=true" >> /etc/lightdm/lightdm.conf.d/99-cyberpatriot-ha
 echo "greeter-show-manual-login=true" >> /etc/lightdm/lightdm.conf.d/99-cyberpatriot-hardening.conf
 
 echo " (i) Guest account disabled via /etc/lightdm/lightdm.conf.d/99-cyberpatriot-hardening.conf"
+
+# --- SECTION 12.1: SECURE CINNAMON DESKTOP (MINT) ---
+echo " (>) Configuring Cinnamon Screensaver & Lock Policies..."
+
+# 1. Create a Dconf profile if it doesn't exist
+mkdir -p /etc/dconf/profile
+if [ ! -f /etc/dconf/profile/user ]; then
+    echo "user-db:user" > /etc/dconf/profile/user
+    echo "system-db:local" >> /etc/dconf/profile/user
+fi
+
+# 2. Create the security settings database
+mkdir -p /etc/dconf/db/local.d
+cat > /etc/dconf/db/local.d/00-cyberpatriot-hardening <<EOF
+[org/cinnamon/desktop/screensaver]
+# Lock the screen when the screensaver activates
+lock-enabled=true
+# Activate screensaver when idle
+idle-activation-enabled=true
+# Time before locking (900 seconds = 15 minutes)
+delay-time=900
+# Lock immediately when screensaver starts
+lock-delay=0
+
+[org/cinnamon/settings-daemon/plugins/power]
+# Lock screen when suspending
+lock-on-suspend=true
+
+[org/cinnamon/desktop/session]
+# Idle delay (15 mins)
+idle-delay=900
+EOF
+
+# 3. Lock these settings so users cannot change them
+mkdir -p /etc/dconf/db/local.d/locks
+cat > /etc/dconf/db/local.d/locks/00-cyberpatriot-hardening <<EOF
+/org/cinnamon/desktop/screensaver/lock-enabled
+/org/cinnamon/desktop/screensaver/idle-activation-enabled
+/org/cinnamon/desktop/screensaver/delay-time
+/org/cinnamon/desktop/screensaver/lock-delay
+/org/cinnamon/settings-daemon/plugins/power/lock-on-suspend
+/org/cinnamon/desktop/session/idle-delay
+EOF
+
+# 4. Update the Dconf database to apply changes
+dconf update
+echo " (i) Cinnamon desktop security enforced."
+
+# --- DISABLE CTRL+ALT+BACKSPACE ---
+# Prevents users from killing the GUI session
+localedef -v -c -i en_US -f UTF-8 en_US.UTF-8 2>/dev/null || true
+if [ -f /etc/default/keyboard ]; then
+    sed -i 's/XKBOPTIONS=".*"/XKBOPTIONS=""/' /etc/default/keyboard
+    dpkg-reconfigure -f noninteractive keyboard-configuration
+fi
 
 # --- 13. KERNEL PARAMETERS ---
 echo ""
