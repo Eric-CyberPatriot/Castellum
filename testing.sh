@@ -318,6 +318,25 @@ add_or_update_sysctl "net.ipv4.conf.all.log_martians" "1"
 add_or_update_sysctl "net.ipv4.tcp_syncookies" "1"
 add_or_update_sysctl "fs.suid_dumpable" "0"
 add_or_update_sysctl "kernel.randomize_va_space" "2"
+add_or_update_sysctl "net.ipv4.ip_forward" "0"                      # Disable IP forwarding
+add_or_update_sysctl "net.ipv4.conf.all.send_redirects" "0"        # Disable sending ICMP redirects
+add_or_update_sysctl "net.ipv4.conf.default.send_redirects" "0"
+add_or_update_sysctl "net.ipv4.conf.all.accept_redirects" "0"      # Disable accepting ICMP redirects (host)
+add_or_update_sysctl "net.ipv4.conf.default.accept_redirects" "0"
+add_or_update_sysctl "net.ipv4.conf.all.secure_redirects" "0"      # Disable accepting secure ICMP redirects
+add_or_update_sysctl "net.ipv4.conf.default.secure_redirects" "0"
+add_or_update_sysctl "net.ipv4.conf.all.accept_source_route" "0"   # Disable accepting source-routed packets
+add_or_update_sysctl "net.ipv4.conf.default.accept_source_route" "0"
+add_or_update_sysctl "net.ipv4.conf.all.log_martians" "1"          # Log packets with impossible addresses
+add_or_update_sysctl "net.ipv4.conf.default.log_martians" "1"
+add_or_update_sysctl "net.ipv4.icmp_echo_ignore_broadcasts" "1"   # Ignore ICMP broadcast requests
+add_or_update_sysctl "net.ipv4.icmp_ignore_bogus_error_responses" "1" # Ignore bogus ICMP error responses
+add_or_update_sysctl "net.ipv4.conf.all.rp_filter" "1"             # Enable reverse path filtering
+add_or_update_sysctl "net.ipv4.conf.default.rp_filter" "1"
+add_or_update_sysctl "net.ipv4.tcp_syncookies" "1"                 # Enable SYN cookies (DoS protection)
+add_or_update_sysctl "net.ipv4.tcp_max_syn_backlog" "2048"
+add_or_update_sysctl "net.ipv4.tcp_synack_retries" "2"
+add_or_update_sysctl "net.ipv4.tcp_syn_retries" "5"
 
 echo " (>) Applying sysctl changes..."
 sysctl -p /etc/sysctl.conf || true
