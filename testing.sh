@@ -525,15 +525,6 @@ for user in $UID0_USERS; do
         echo "     - $user UID changed. Verify user is still needed."
     fi
 done
-# --- 12. LIGHTDM ---
-echo ""
-echo "--- SECTION 12: LIGHTDM ---"
-LIGHTDM_CONF="/usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf"
-if [ -f "$LIGHTDM_CONF" ]; then
-    echo "allow-guest=false" >> "$LIGHTDM_CONF"
-    echo "greeter-hide-users=true" >> "$LIGHTDM_CONF"
-    echo "greeter-show-manual-login=true" >> "$LIGHTDM_CONF"
-fi
 
 # --- 12. LIGHTDM (LINUX MINT 21 FIX) ---
 echo ""
