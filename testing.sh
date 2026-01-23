@@ -135,9 +135,7 @@ echo "--- SECTION 5: APPLICATION ARMOR (APPARMOR) ---"
 systemctl enable apparmor || true
 systemctl start apparmor || true
 # Only enforce if profiles exist
-if ls /etc/apparmor.d/* &> /dev/null; then
-    aa-enforce /etc/apparmor.d/* || true
-fi
+
 
 # --- 6. UNATTENDED UPGRADES ---
 echo ""
@@ -676,7 +674,7 @@ done
 # --- SECURE SUDOERS DIRECTORY ---
 echo " (>) Securing /etc/sudoers.d..."
 # The directory itself needs to be 750 (root:root or root:sudo)
-chmod 750 /etc/sudoers.d
+chmod 755 /etc/sudoers.d
 # Files inside must be 440
 chmod 440 /etc/sudoers.d/* 2>/dev/null || true
 # --- SECURE APT SOURCES ---
@@ -717,7 +715,6 @@ cp /etc/hosts /etc/hosts.bak
 # Remove lines redirecting security sites to localhost
 sed -i '/security.ubuntu.com/d' /etc/hosts
 sed -i '/archive.ubuntu.com/d' /etc/hosts
-sed -i '/packages.linuxmint.com/d' /etc/hosts
 echo " (i) Hosts file cleaned."
 
 # --- SUDOERS NOPASSWD SCRUB ---
