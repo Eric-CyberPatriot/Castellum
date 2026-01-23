@@ -185,13 +185,18 @@ ufw status verbose
 # --- 8. REMOVE INSECURE SERVICES ---
 echo ""
 echo "--- SECTION 8: REMOVE INSECURE SERVICES & PACKAGES ---"
-INSECURE_SERVICES=( "avahi-daemon" "cups" "rpcbind" "telnetd" "vsftpd" "pure-ftpd" "apache2" "nginx" "samba" "smbd" "nfs-kernel-server" "bind9" "snmpd" "pop3" "dovecot" )
+INSECURE_SERVICES=( "avahi-daemon" "cups" "rpcbind" "telnetd" "vsftpd" "pure-ftpd" "apache2" "nginx" "samba" "smbd" "nfs-kernel-server" "bind9" "snmpd" "pop3" "dovecot" "fingerd" "rstatd" "ruserd" "rwalld" "squid" "snmpd" "xrdp" "vncserver" "inetd")
 INSECURE_PACKAGES=( "telnet" "rsh-client" "rsh-redone-client" "talk" "ypbind" "xinetd" "tftpd" "john" "nmap" "hydra" "wireshark" "netcat" "netcat-openbsd" "netcat-traditional" "ophcrack" "kismet" "minetest" "aircrack-ng" "metasploit-framework" "nikto" "sqlmap" "burpsuite" "medusa" "hashcat" 
     "tcpdump" "zenmap" "ettercap-common" "dsniff" "wireshark" "tshark" 
     "teamviewer" "anydesk" "tightvncserver" "vnc4server" "x11vnc" "rdesktop"
     "steam" "steam-launcher" "minecraft-launcher" "wesnoth" "vlc" "spotify-client"
     "discord" "zoom" "frozen-bubble" "rsh-client" "rsh-server" "nis" "yp-tools" 
-    "tftp" "atftpd" "snmp" "snmpd" "ldap-utils" "slapd")
+    "tftp" "atftpd" "snmp" "snmpd" "ldap-utils" "slapd" "doona" "finger" "rlogin" "rexec" "wine" "wine32" "wine64" 
+    "aisleriot" "gnome-games" "kmines" "quadrapassel" "tali" "iagno" "lightsoff"
+    "qbittorrent" "deluge" "frostwire" "nicotine" 
+    "skypeforlinux" "slack-desktop" "telegram-desktop"
+    "gcc" "make" "git" "nmap" "zenmap" "wireshark" "tshark" 
+    "beef-xss" "maltego" "aircrack-ng" "crunch" "hashcat")
 
 for service in "${INSECURE_SERVICES[@]}"; do
   if systemctl is-active --quiet "$service"; then
