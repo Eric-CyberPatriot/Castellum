@@ -163,7 +163,12 @@ ufw status verbose
 echo ""
 echo "--- SECTION 8: REMOVE INSECURE SERVICES & PACKAGES ---"
 INSECURE_SERVICES=( "avahi-daemon" "cups" "rpcbind" "telnetd" "vsftpd" "pure-ftpd" "apache2" "nginx" "samba" "smbd" "nfs-kernel-server" "bind9" "snmpd" "pop3" "dovecot" )
-INSECURE_PACKAGES=( "telnet" "rsh-client" "rsh-redone-client" "talk" "ypbind" "xinetd" "tftpd" "john" "nmap" "hydra" "wireshark" "netcat" "netcat-openbsd" "netcat-traditional" "ophcrack" "kismet" "minetest" )
+INSECURE_PACKAGES=( "telnet" "rsh-client" "rsh-redone-client" "talk" "ypbind" "xinetd" "tftpd" "john" "nmap" "hydra" "wireshark" "netcat" "netcat-openbsd" "netcat-traditional" "ophcrack" "kismet" "minetest" "aircrack-ng" "metasploit-framework" "nikto" "sqlmap" "burpsuite" "medusa" "hashcat" 
+    "tcpdump" "zenmap" "ettercap-common" "dsniff" "wireshark" "tshark" 
+    "teamviewer" "anydesk" "tightvncserver" "vnc4server" "x11vnc" "rdesktop"
+    "steam" "steam-launcher" "minecraft-launcher" "wesnoth" "vlc" "spotify-client"
+    "discord" "zoom" "frozen-bubble" "rsh-client" "rsh-server" "nis" "yp-tools" 
+    "tftp" "atftpd" "snmp" "snmpd" "ldap-utils" "slapd")
 
 for service in "${INSECURE_SERVICES[@]}"; do
   if systemctl is-active --quiet "$service"; then
