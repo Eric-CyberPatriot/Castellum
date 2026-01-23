@@ -20,13 +20,13 @@ chown root:root /var/tmp
 echo " (>) Locking down system binary directories..."
 SYS_DIRS=("/bin" "/sbin" "/usr/bin" "/usr/sbin" "/usr/local/bin" "/usr/local/sbin" "/lib" "/lib64" "/usr/lib")
 
+echo " (>) Securing binaries safely (preserving SUID)..."
 for dir in "${SYS_DIRS[@]}"; do
     if [ -d "$dir" ]; then
-        # Ensure root ownership
+        # Remove world-write, but DO NOT touch SUID (4000) or SGID (2000) bits
+        find "$dir" -perm /0002 -type f -exec chmod o-w {} +
+        find "$dir" -perm /0020 -type f -exec chmod g-w {} +
         chown -R root:root "$dir"
-        # Remove write access for Group and Others (go-w)
-        # We use 'chmod -R go-w' instead of setting specific numbers to preserve existing execute bits.
-        chmod -R go-w "$dir"
     fi
 done
 
@@ -42,26 +42,25 @@ chmod 644 /etc/group
 chmod 640 /etc/shadow   # Shadow must be 640 (root:shadow)
 chmod 640 /etc/gshadow
 chown root:shadow /etc/shadow /etc/gshadow 2>/dev/null || chown root:root /etc/shadow
+echo " (>) Fixing Shadow integrity..."
+chown root:shadow /etc/shadow /etc/gshadow
+chmod 640 /etc/shadow /etc/gshadow
 
 # 4. SECURE HOME DIRECTORIES
 echo " (>) Securing User Home Directories..."
-# Users should not be able to write to other users' folders.
-# Loop through all real users in /home
-for user_home in /home/*; do
+# Get only users with UID 1000-60000
+awk -F: '($3 >= 1000 && $3 < 60000) {print $1 ":" $6}' /etc/passwd | while read -r line; do
+    user_name=$(echo "$line" | cut -d: -f1)
+    user_home=$(echo "$line" | cut -d: -f2)
+
     if [ -d "$user_home" ]; then
-        user_name=$(basename "$user_home")
-        
-        # 1. Ensure the user owns their own home
         chown -R "$user_name":"$user_name" "$user_home"
-        
-        # 2. Lock the directory itself (750: User RWX, Group RX, World None)
         chmod 750 "$user_home"
-        
-        # 3. Recursively remove World permissions inside the home folder
-        # This fixes "777" files users might have created
-        chmod -R o-rwx "$user_home"
-        
-        echo "     - Secured /home/$user_name"
+        # Secure ssh folders if they exist
+        if [ -d "$user_home/.ssh" ]; then
+            chmod 700 "$user_home/.ssh"
+            chmod 600 "$user_home/.ssh/"* 2>/dev/null
+        fi
     fi
 done
 
@@ -106,7 +105,21 @@ echo " (>) Applying distro-specific hardening..."
 # Secure profile.d (often target of persistence)
 chmod 644 /etc/profile.d/* 2>/dev/null
 chown root:root /etc/profile.d/* 2>/dev/null
-
+echo "--- SUID/SGID AUDIT (Potential Backdoors) ---"
+# List all SUID/SGID files. Standard ones are in /bin, /sbin, /usr. 
+# Anything in /tmp, /var, or /home is 99% a backdoor.
+find / -type f \( -perm -4000 -o -perm -2000 \) -not -path "/snap/*" 2>/dev/null | while read -r file; do
+    case "$file" in
+        /bin/*|/sbin/*|/usr/bin/*|/usr/sbin/*|/lib/*|/usr/lib/*)
+            # Likely legitimate, but check for weird names
+            ;;
+        *)
+            echo " [!!!] SUSPICIOUS SUID FILE: $file"
+            # Optional: Remove SUID bit automatically
+            # chmod u-s "$file"
+            ;;
+    esac
+done
 # Secure sudoers
 chmod 440 /etc/sudoers
 chmod 750 /etc/sudoers.d
