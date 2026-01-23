@@ -18,6 +18,7 @@ for user in "${USERS[@]}"; do
     if id "$user" &>/dev/null; then
         echo "$user:$NEWPASS" | chpasswd
         chage -d 0 "$user"    # Forces password change at next login
+        chage -M 90 -m 7 -W 14 "$user"
         echo "Updated password and forced reset for: $user"
     else
         echo "User does not exist: $user"
