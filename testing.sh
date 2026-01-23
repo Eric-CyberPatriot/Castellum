@@ -5,6 +5,7 @@
 # Removed 'set -e' to prevent the script from crashing if a single command fails (e.g., package not found).
 # We want the script to attempt all hardening steps even if one fails.
 set -o pipefail
+export DEBIAN_FRONTEND=noninteractive
 
 LOG_FILE="/var/log/cyberpatriot_hardening_$(date +%Y%m%d_%H%M%S).log"
 exec > >(tee -a "${LOG_FILE}") 2>&1
