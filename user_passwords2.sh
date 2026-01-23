@@ -2,7 +2,7 @@
 
 # --- CONFIGURE THESE VALUES ---
 USERS=("alice" "bob" "charlie")   # Put your usernames here
-NEWPASS="Cyb3rPatri0tsPass"         # Password you want all users to have
+NEWPASS="Cyb3rPatri0tsPass!"         # Password you want all users to have
 # --------------------------------
 
 # Require root
