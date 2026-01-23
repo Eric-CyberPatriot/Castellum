@@ -788,6 +788,14 @@ grep -r "NOPASSWD" /etc/sudoers.d/ | while read -r line; do
     echo "     - Commented out NOPASSWD in $file"
 done
 
+echo " (>) Locking shells for system accounts..."
+# This finds system accounts (UID < 1000) that have a shell and changes it to nologin
+awk -F: '($3 < 1000 && $1 != "root" && $7 != "/usr/sbin/nologin" && $7 != "/bin/false") {print $1}' /etc/passwd | while read user; do
+    usermod -s /usr/sbin/nologin "$user"
+done
+
+
+
 # --- 16. MEDIA & HACKING FILES ---
 echo ""
 echo "--- SECTION 16: PROHIBITED FILES ---"
@@ -805,6 +813,12 @@ echo "--- FINAL CLEANUP ---"
 apt-get autoremove -y
 apt-get clean
 
+echo " (>) Hardening resource limits..."
+cat <<EOF >> /etc/security/limits.conf
+* hard core 0
+* soft nproc 100
+* hard nproc 150
+EOF
 # --- ADVANCED PERSISTENCE CHECK ---
 echo " (>) Checking for suspicious startup scripts..."
 # Look for scripts in init.d that are not official services
@@ -845,6 +859,13 @@ echo " (>) Checking for accounts with empty passwords..."
 EMPTY_PW=$(awk -F: '($2 == "") {print $1}' /etc/shadow)
 for user in $EMPTY_PW; do
     echo " [!] Account $user has NO PASSWORD!"
+done
+echo " (>) Verifying integrity of password files..."
+pwck -r || echo " [!!!] Potential issues found in /etc/passwd or /etc/shadow!"
+grpck -r || echo " [!!!] Potential issues found in /etc/group or /etc/gshadow!"
+echo "--- CRON JOB AUDIT ---"
+for user in $(awk -F: '{print $1}' /etc/passwd); do
+    crontab -u "$user" -l 2>/dev/null | grep -v "^#" && echo " (!!!) Above cron job found for user: $user"
 done
 
 exit 0
