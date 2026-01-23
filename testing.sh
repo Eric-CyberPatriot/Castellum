@@ -74,6 +74,15 @@ apt-get install -y ufw clamav clamav-daemon freshclam auditd audispd-plugins \
                    aide aide-common unattended-upgrades fail2ban openscap-scanner lynis || true
 
 # --- 2. ANTIVIRUS (CLAMAV) ---
+echo " (>) Setting default account inactivity to 30 days..."
+useradd -D -f 30
+echo " (>) Setting global shell timeout (900 seconds)..."
+if ! grep -q "TMOUT=" /etc/profile; then
+    echo "readonly TMOUT=900" >> /etc/profile
+    echo "export TMOUT" >> /etc/profile
+fi
+echo " (>) Enforcing sticky bits on world-writable directories..."
+find / -xdev -type d \( -perm -0002 -a ! -perm -1000 \) -exec chmod +t {} + 2>/dev/null
 echo ""
 echo "--- SECTION 2: ANTIVIRUS (CLAMAV) ---"
 echo " (>) Stopping clamav-freshclam to update manually..."
@@ -130,12 +139,26 @@ EOF
     systemctl restart auditd || echo " (!) Failed to restart auditd"
 fi
 
+echo " (>) Hardening Sudoers policy..."
+# Ensure sudo requires a password every time (short timeout)
+# and use a separate TTY for each sudo command
+cat > /etc/sudoers.d/99-cyberpatriot <<EOF
+Defaults        env_reset
+Defaults        mail_badpass
+Defaults        secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Defaults        use_pty
+Defaults        passwd_timeout=0
+Defaults        timestamp_timeout=0
+EOF
+chmod 440 /etc/sudoers.d/99-cyberpatriot
 # --- 5. APPLICATION ARMOR (APPARMOR) ---
 echo ""
 echo "--- SECTION 5: APPLICATION ARMOR (APPARMOR) ---"
 systemctl enable apparmor || true
 systemctl start apparmor || true
 # Only enforce if profiles exist
+echo " (>) Putting AppArmor profiles into enforce mode..."
+aa-enforce /etc/apparmor.d/* 2>/dev/null || true
 
 
 # --- 6. UNATTENDED UPGRADES ---
@@ -418,7 +441,13 @@ systemctl restart fail2ban || true
 # --- 11. USER ACCOUNTS & PASSWORD POLICIES ---
 echo ""
 echo "--- SECTION 11: USER ACCOUNTS & PASSWORD POLICIES ---"
-
+echo " (>) Enforcing password history (remember=5)..."
+# Look for pam_unix.so in common-password and add remember=5
+if grep -q "pam_unix.so" /etc/pam.d/common-password; then
+    # Remove existing remember setting if it exists, then add it
+    sed -i 's/\(pam_unix.so.*\)\sremember=[0-9]*/\1/' /etc/pam.d/common-password
+    sed -i 's/pam_unix.so.*/& remember=5/' /etc/pam.d/common-password
+fi
 # Lock root
 passwd -l root || true
 
@@ -445,7 +474,12 @@ pam-auth-update --enable pwquality || true
 # PAM Faillock/Tally logic
 COMMON_AUTH="/etc/pam.d/common-auth"
 cp "$COMMON_AUTH" "${COMMON_AUTH}.bak"
-
+pam-auth-update --enable faillock
+# Set specific values often required by CyberPatriot
+echo "deny = 3" > /etc/security/faillock.conf
+echo "unlock_time = 900" >> /etc/security/faillock.conf
+echo "silent" >> /etc/security/faillock.conf
+echo "audit" >> /etc/security/faillock.conf
 # Check OS version for faillock vs tally2
 # Ubuntu 22.04+ uses faillock. 20.04 and older uses tally2.
 if grep -q "pam_tally2.so" /lib/x86_64-linux-gnu/security/pam_tally2.so 2>/dev/null || [ -f /lib/security/pam_tally2.so ]; then
@@ -456,13 +490,10 @@ if grep -q "pam_tally2.so" /lib/x86_64-linux-gnu/security/pam_tally2.so 2>/dev/n
 else
     echo " (i) Assuming pam_faillock (Newer Ubuntu)."
     # Basic check to avoid double entry
-    if ! grep -q "pam_faillock.so" "$COMMON_AUTH"; then
-        sed -i '1i auth required pam_faillock.so preauth silent audit deny=3 unlock_time=900' "$COMMON_AUTH"
-        # faillock also needs an entry at the end usually, or just rely on common-account
-        echo "auth [default=die] pam_faillock.so authfail" >> "$COMMON_AUTH"
-        echo "auth sufficient pam_faillock.so authsucc" >> "$COMMON_AUTH"
-    fi
+    
 fi
+# This ensures even if pam-auth-update used defaults, we overwrite them with our target values
+sed -i 's/pam_faillock.so.*/pam_faillock.so preauth silent audit deny=3 unlock_time=900/' /etc/pam.d/common-auth
 
 # --- FIX NOPASSWDLOGIN GROUP ---
 echo " (>) Checking for users in 'nopasswdlogin' group..."
@@ -604,7 +635,21 @@ fi
 # --- 13. KERNEL PARAMETERS ---
 echo ""
 echo "--- SECTION 13: KERNEL PARAMETERS ---"
+echo " (>) Disabling IPv6..."
+add_or_update_sysctl "net.ipv6.conf.all.disable_ipv6" "1"
+add_or_update_sysctl "net.ipv6.conf.default.disable_ipv6" "1"
+add_or_update_sysctl "net.ipv6.conf.lo.disable_ipv6" "1"
+sysctl -p
 # Apply basic hardening
+# Prevent core dumps (can contain sensitive info)
+add_or_update_sysctl "fs.suid_dumpable" "0"
+
+# IP Spoofing protection
+add_or_update_sysctl "net.ipv4.conf.all.rp_filter" "1"
+add_or_update_sysctl "net.ipv4.conf.default.rp_filter" "1"
+
+# Ignore Bogus ICMP Errors
+add_or_update_sysctl "net.ipv4.icmp_ignore_bogus_error_responses" "1"
 add_or_update_sysctl "net.ipv4.ip_forward" "0"
 add_or_update_sysctl "net.ipv4.conf.all.accept_redirects" "0"
 add_or_update_sysctl "net.ipv4.conf.all.log_martians" "1"
@@ -784,5 +829,17 @@ echo "ALL USERS (UID >= 1000):"
 awk -F: '($3 >= 1000 && $3 < 60000) {print $1, $3}' /etc/passwd
 echo "=================================================="
 echo ""
+echo " (>) Scanning for suspicious usernames..."
+SUSPICIOUS_NAMES=("backdoor" "hacker" "attacker" "shadow" "temp" "test" "root2" "admin2")
+for name in "${SUSPICIOUS_NAMES[@]}"; do
+    if id "$name" &>/dev/null; then
+        echo " [!!!] SUSPICIOUS USER FOUND: $name. Check README immediately!"
+    fi
+done
+echo " (>) Checking for accounts with empty passwords..."
+EMPTY_PW=$(awk -F: '($2 == "") {print $1}' /etc/shadow)
+for user in $EMPTY_PW; do
+    echo " [!] Account $user has NO PASSWORD!"
+done
 
 exit 0
