@@ -158,7 +158,7 @@ systemctl enable apparmor || true
 systemctl start apparmor || true
 # Only enforce if profiles exist
 echo " (>) Putting AppArmor profiles into enforce mode..."
-aa-enforce /etc/apparmor.d/* 2>/dev/null || true
+aa-complain /etc/apparmor.d/* 2>/dev/null || true
 
 
 # --- 6. UNATTENDED UPGRADES ---
@@ -686,7 +686,7 @@ sysctl -p /etc/sysctl.conf || true
 
 # --- 14. SECURE SHARED MEMORY ---
 if ! grep -q "tmpfs /dev/shm" /etc/fstab; then
-    echo "tmpfs /dev/shm tmpfs defaults,rw,nosuid,nodev,noexec 0 0" >> /etc/fstab
+    echo "tmpfs /dev/shm tmpfs defaults,rw,nosuid,nodev 0 0" >> /etc/fstab
     mount -o remount /dev/shm || true
 fi
 
@@ -790,9 +790,9 @@ done
 
 echo " (>) Locking shells for system accounts..."
 # This finds system accounts (UID < 1000) that have a shell and changes it to nologin
-awk -F: '($3 < 1000 && $1 != "root" && $7 != "/usr/sbin/nologin" && $7 != "/bin/false") {print $1}' /etc/passwd | while read user; do
-    usermod -s /usr/sbin/nologin "$user"
-done
+# awk -F: '($3 < 1000 && $1 != "root" && $7 != "/usr/sbin/nologin" && $7 != "/bin/false") {print $1}' /etc/passwd | while read user; do
+#    usermod -s /usr/sbin/nologin "$user"
+#done
 
 
 
